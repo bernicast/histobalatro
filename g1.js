@@ -26,26 +26,26 @@ const CARDS = {
 };
 const STARTING_DECK = ['plana','plana','plana','cubica','cubica','cilindrica','cilindrica','fibroblasto','fibroblasto','fibroblasto','adipocito','adipocito','miocito','miocito','miocito','miocito','neurona','neurona','glia','simple','simple','simple','estratificado','estratificado','seudo','laxo','laxo','denso_reg','denso_reg','denso_irr','ramificado','ramificado','mb','mb','mb','colageno','colageno','sf','sf','estrias','estrias','estrias','discos','discos','nucleos_per','nucleos_per','soma','soma','axon','axon','mielina'];
 const ROUNDS = [
-  { id:1, name:'Corte de calentamiento', target:160, blurb:'Que se vea un tejido.' },
-  { id:2, name:'Bandeja de epitelios', target:260, blurb:'Sin membrana basal no es epitelio.' },
-  { id:3, name:'La matriz manda', target:380, blurb:'Células dispersas y fibras: conjuntivo.' },
-  { id:4, name:'Contracción', target:520, blurb:'Estriado o no. El núcleo delata al esquelético.' },
-  { id:5, name:'Señales', target:680, blurb:'Soma, axón, mielina.' },
-  { id:6, name:'El profesor de prácticas', target:900, blurb:'Jefe. Los cuatro tejidos.' }
+  { id:1, name:'Corte de calentamiento', target:160, next:'Luego: epitelios.', seek:'Monta 3 cartas de la misma familia. Si no hay receta, una sospecha vale.' },
+  { id:2, name:'Bandeja de epitelios', target:260, next:'Luego: conjuntivo.', seek:'Busca: célula plana/cúbica/cilíndrica + simple o estratificado + membrana basal.' },
+  { id:3, name:'La matriz manda', target:380, next:'Luego: músculo (Contracción).', seek:'Busca: fibroblasto + laxo o denso regular + colágeno o sustancia fundamental.' },
+  { id:4, name:'Contracción', target:520, next:'Luego: nervioso (Señales).', seek:'Esquelético: miocito + estriaciones + núcleos periféricos. Cardiaco: miocito + estriaciones + discos intercalares. Liso: miocito + simple, sin estriaciones.' },
+  { id:5, name:'Señales', target:680, next:'Luego: examen final.', seek:'Neurona: neurona + soma + axón. Nervio: axón + mielina + glía.' },
+  { id:6, name:'El profesor de prácticas', target:900, next:'Última ronda.', seek:'Vale cualquiera de los 4 tejidos. Mejor de 3 cartas, sin mezclar familias.' }
 ];
 const JOKERS = [
-  { id:'polaridad', name:'Polaridad', text:'×2 si el corte es epitelial.' },
-  { id:'mb', name:'Membrana basal', text:'+8 mult si hay membrana basal.' },
-  { id:'matriz', name:'Matriz abundante', text:'×2,5 si es conjuntivo.' },
-  { id:'denso', name:'Pocas células', text:'+40 fichas en conjuntivo denso.' },
+  { id:'polaridad', name:'Polaridad', text:'×2 si el corte es epitelial. El epitelio tiene cara apical y basal.' },
+  { id:'mb', name:'Membrana basal', text:'+8 mult si hay membrana basal en el corte. Sin ella no llames epitelio.' },
+  { id:'matriz', name:'Matriz abundante', text:'×2,5 si es conjuntivo. Se reconoce por lo que hay ENTRE las células.' },
+  { id:'denso', name:'Pocas células', text:'+40 fichas solo en conjuntivo denso (mucha fibra, pocas células).' },
   { id:'contractil', name:'Contráctil', text:'+35 fichas si es muscular.' },
-  { id:'estriado', name:'Estriado', text:'×2 en esquelético o cardiaco.' },
-  { id:'periferico', name:'Núcleo periférico', text:'+12 mult en músculo esquelético.' },
+  { id:'estriado', name:'Estriado', text:'×2 en esquelético o cardiaco. El liso no tiene estriaciones.' },
+  { id:'periferico', name:'Núcleo periférico', text:'+12 mult en músculo esquelético. Allí el núcleo está pegado a la membrana.' },
   { id:'excitable', name:'Excitable', text:'×2 si es nervioso.' },
-  { id:'avascular', name:'Avascular', text:'+6 mult en epitelio.' },
-  { id:'atlas', name:'Lámina de atlas', text:'Atlas y lámina de 10 duplican fichas.' },
-  { id:'limpio', name:'Corte limpio', text:'+10 mult si no sobran cartas.' },
-  { id:'sospechoso', name:'Ojo clínico', text:'Las sospechas pagan 3×.' }
+  { id:'avascular', name:'Avascular', text:'+6 mult en epitelio. El epitelio típico no tiene vasos.' },
+  { id:'atlas', name:'Lámina de atlas', text:'Los cortes exactos duplican fichas.' },
+  { id:'limpio', name:'Corte limpio', text:'+10 mult si montas exactamente 3 cartas y el tejido queda claro. No añadas sobras.' },
+  { id:'sospechoso', name:'Ojo clínico', text:'Las sospechas (familia sin subtipo) pagan 3×.' }
 ];
 function uid(){ return Math.random().toString(36).slice(2,9); }
 function shuffle(a){ a=a.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
@@ -81,13 +81,13 @@ function diagnose(played){
     else if(exactish){tier='lamina';chips=120;mult=4;name=hit.name+' · lámina de 10';}
     else if(conflict){tier='basico';chips=55;mult=2;name=hit.tissue+' (sucio)';}
     else {tier='subtipo';chips=80;mult=3;}
-    const note=conflict?'Hay una estructura que no encaja.':(atlas?'Corte de atlas.':('Tejido '+hit.tissue+'.'));
+    const note=conflict?'Hay una estructura que no encaja.':(atlas?'Corte de atlas: 3 cartas, receta exacta.':('Tejido '+hit.tissue+'.'));
     return {tier,name,tissue:hit.tissue,chips,mult,note,recipe:hit.id};
   }
   const top=Object.entries(votes).sort((a,b)=>b[1]-a[1])[0];
-  if(top[1]>=3) return {tier:'sospecha',name:'Sospecha de '+top[0],tissue:top[0],chips:28,mult:2,note:'Falta la tríada diagnóstica.'};
+  if(top[1]>=3) return {tier:'sospecha',name:'Sospecha de '+top[0],tissue:top[0],chips:28,mult:2,note:'Se ve la familia, falta la receta de 3 piezas.'};
   if(top[1]>=2) return {tier:'basico',name:'Tejido básico indefinido',tissue:top[0],chips:40,mult:1,note:'Hay familia, no hay subtipo.'};
-  return {tier:'nada',name:'Quimera',tissue:null,chips:8,mult:1,note:'Has inventado un tejido.'};
+  return {tier:'nada',name:'Quimera',tissue:null,chips:8,mult:1,note:'Has mezclado familias que no encajan.'};
 }
 function applyJokers(diag,played,jokers){
   let chips=diag.chips, mult=diag.mult; const notes=[];
