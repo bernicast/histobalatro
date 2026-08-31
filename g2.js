@@ -4,7 +4,7 @@ function startRound() {
   state.playsLeft = 3;
   state.discardsLeft = 2;
   state.selected = [];
-  state.lastVerdict = { html: '<em>' + r.name + '.</em> ' + r.blurb + ' Objetivo: ' + r.target + ' fichas en 3 cortes.' };
+  state.lastVerdict = { html: '<em>' + r.name + '.</em> ' + r.seek + ' Objetivo: ' + r.target + ' fichas. ' + r.next };
   drawTo(8);
 }
 function playSelected() {
@@ -71,15 +71,17 @@ function renderCard(card) {
 function render() {
   const root = document.getElementById('app');
   if (state.view === 'title') {
-    root.innerHTML = '<div class="screen"><div class="title-wrap"><div class="eyebrow">Prácticas de histología · los 4 tejidos</div><h1>Histobalatro</h1><p class="lede">Monta un corte con 3 a 5 cartas. Si forman un tejido de verdad, el microscopio paga.</p><div class="actions"><button class="btn" data-act="start">Nueva run</button><button class="btn ghost" data-act="help">Cómo se juega</button></div></div></div>';
+    root.innerHTML = '<div class="screen"><div class="title-wrap"><div class="eyebrow">Prácticas de histología · los 4 tejidos</div><h1>Histobalatro</h1><p class="lede">6 rondas fijas: calentamiento → epitelio → conjuntivo → músculo → nervioso → examen. Monta 3 cartas: célula + organización + estructura. Si mezclas familias, el corte se ensucia.</p><div class="actions"><button class="btn" data-act="start">Nueva run</button><button class="btn ghost" data-act="help">Cómo se juega</button></div></div></div>';
     return;
   }
   if (state.view === 'help') {
-    root.innerHTML = '<div class="screen"><div class="eyebrow">Manual</div><h2>Cómo se monta un corte</h2><div class="help"><p>8 cartas, 3 cortes, 2 descartes. Elige 3–5 y pulsa Montar.</p><p>Receta: célula + organización + estructura.</p></div><div class="actions"><button class="btn" data-act="title">Volver</button></div></div>';
+    root.innerHTML = '<div class="screen"><div class="eyebrow">Manual</div><h2>Cómo se monta un corte</h2><div class="help"><p><b>Objetivo de cada ronda:</b> llegar a las fichas con 3 cortes y 2 descartes.</p><p><b>Receta ganadora:</b> exactamente 3 cartas que encajen. La 4ª suele estorbar.</p><p><b>Epitelio:</b> célula plana/cúbica/cilíndrica + simple o estratificado + membrana basal.</p><p><b>Conjuntivo:</b> fibroblasto + laxo o denso regular + colágeno o sustancia fundamental.</p><p><b>Músculo esquelético:</b> miocito + estriaciones + núcleos periféricos.</p><p><b>Músculo cardiaco:</b> miocito + estriaciones + discos intercalares.</p><p><b>Neurona:</b> neurona + soma + axón.</p><p><b>Las 6 rondas:</b> 1 calentamiento · 2 epitelios · 3 conjuntivo · 4 músculo · 5 nervioso · 6 examen final.</p><p>Si no está la receta, descarta cartas de otra familia. Una sospecha (3 cartas de la misma familia) suma poco, pero evita el 0.</p></div><div class="actions"><button class="btn" data-act="title">Volver</button></div></div>';
     return;
   }
   if (state.view === 'draft') {
-    root.innerHTML = '<div class="screen"><div class="eyebrow">Ronda superada · ' + state.score + ' fichas</div><h2>Elige un joker</h2><div class="modal-grid">' + state.draft.map(j => '<button class="pick" data-joker="' + j.id + '"><b>' + j.name + '</b><p>' + j.text + '</p></button>').join('') + '</div><button class="btn ghost" data-act="skip">Seguir sin joker</button></div>';
+    const nxt = ROUNDS[state.round + 1];
+    const hint = nxt ? ('Siguiente ronda: <em>' + nxt.name + '</em>. ' + nxt.seek) : 'Última ronda superada.';
+    root.innerHTML = '<div class="screen"><div class="eyebrow">Ronda superada · ' + state.score + ' fichas</div><h2>Elige un joker</h2><p class="lede">Un criterio histológico para el resto de la run. ' + hint + '</p><div class="modal-grid">' + state.draft.map(j => '<button class="pick" data-joker="' + j.id + '"><b>' + j.name + '</b><p>' + j.text + '</p></button>').join('') + '</div><button class="btn ghost" data-act="skip">Seguir sin joker</button></div>';
     return;
   }
   if (state.view === 'win' || state.view === 'lose') {
@@ -88,7 +90,7 @@ function render() {
     return;
   }
   const r = ROUNDS[state.round];
-  root.innerHTML = '<div class="screen"><div class="hud"><div class="stat"><b>' + state.score + ' / ' + r.target + '</b><span>fichas</span></div><div class="round-name">' + r.name + '<div style="font-size:12px;color:var(--muted)">' + state.playsLeft + ' cortes · ' + state.discardsLeft + ' descartes</div></div><div class="stat right"><b>' + (state.round+1) + '/6</b><span>ronda</span></div></div><div class="jokers">' + (state.jokers.length ? state.jokers.map(j => '<div class="joker-chip">' + j.name + '</div>').join('') : '<div class="joker-chip">Sin jokers</div>') + '</div><div class="table"><div class="scope-label">Platina</div><div class="play-row">' + (state.hand.filter(c => state.selected.includes(c.id)).map(renderCard).join('') || '<span style="color:#8aa399">Elige 3 a 5 cartas.</span>') + '</div><div class="verdict">' + (state.lastVerdict ? state.lastVerdict.html : '') + '</div></div><div class="hand-wrap"><h3>Mano</h3><div class="hand-row">' + state.hand.map(renderCard).join('') + '</div></div><div class="controls"><button class="btn" data-act="play" ' + (state.selected.length<3||state.selected.length>5?'disabled':'') + '>Montar corte (' + state.selected.length + ')</button><button class="btn ghost" data-act="discard" ' + (!state.selected.length||!state.discardsLeft?'disabled':'') + '>Descartar</button></div></div>';
+  root.innerHTML = '<div class="screen"><div class="hud"><div class="stat"><b>' + state.score + ' / ' + r.target + '</b><span>fichas</span></div><div class="round-name">' + r.name + '<div style="font-size:12px;color:var(--muted)">' + state.playsLeft + ' cortes · ' + state.discardsLeft + ' descartes</div></div><div class="stat right"><b>' + (state.round+1) + '/6</b><span>ronda</span></div></div><div class="jokers">' + (state.jokers.length ? state.jokers.map(j => '<div class="joker-chip">' + j.name + '</div>').join('') : '<div class="joker-chip">Sin jokers</div>') + '</div><div class="table"><div class="scope-label">Platina</div><div class="play-row">' + (state.hand.filter(c => state.selected.includes(c.id)).map(renderCard).join('') || '<span style="color:#8aa399">Elige 3 cartas de la receta. La 4ª suele sobrar.</span>') + '</div><div class="verdict">' + (state.lastVerdict ? state.lastVerdict.html : '') + '</div></div><div class="hand-wrap"><h3>Mano</h3><div class="hand-row">' + state.hand.map(renderCard).join('') + '</div></div><div class="controls"><button class="btn" data-act="play" ' + (state.selected.length<3||state.selected.length>5?'disabled':'') + '>Montar corte (' + state.selected.length + ')</button><button class="btn ghost" data-act="discard" ' + (!state.selected.length||!state.discardsLeft?'disabled':'') + '>Descartar</button></div></div>';
 }
 document.getElementById('app').addEventListener('click', (e) => {
   const card = e.target.closest('.card');
